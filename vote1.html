@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时投票系统 · AI智能点评</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #e8ecf1;
+            --card-bg: #ffffff;
+            --primary: #667eea;
+            --primary-dark: #5a6fd6;
+            --accent: #764ba2;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            --radius: 20px;
+            --radius-sm: 14px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --gold: #f59e0b;
+            --green: #10b981;
+            --red: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #e8ecf1 0%, #dce2ea 30%, #d0d7e2 60%, #e2e7ef 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .main-panel {
+            max-width: 1000px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 16px;
+        }
+        .header-left {
+            flex: 1;
+            min-width: 240px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.4px;
+            font-weight: 700;
+        }
+        .qr-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 2px dashed #e2e8f0;
+            flex-shrink: 0;
+        }
+        .qr-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e2e8f0;
+        }
+        .qr-container canvas,
+        .qr-container img {
+            width: 70px !important;
+            height: 70px !important;
+        }
+        .qr-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .public-url-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .public-url-row input {
+            flex: 1;
+            min-width: 130px;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 11px;
+            background: #fff;
+        }
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .candidate-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        .candidate-bar input {
+            flex: 2;
+            min-width: 180px;
+            padding: 11px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 30px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #f8fafc;
+            transition: all var(--transition);
+        }
+        .candidate-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+        }
+        .btn {
+            padding: 11px 20px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 22px rgba(102, 126, 234, 0.45);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid #e2e8f0;
+        }
+        .btn-outline:hover {
+            border-color: var(--primary);
+            background: #f0f3ff;
+            transform: translateY(-2px);
+        }
+        .btn-danger-text {
+            background: none;
+            color: #94a3b8;
+            font-size: 12px;
+            padding: 6px 12px;
+            text-decoration: underline;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-danger-text:hover {
+            color: #ef4444;
+        }
+        .candidates-scroll {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .candidate-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #fafbfc;
+            border-radius: 40px;
+            border: 2px solid transparent;
+            transition: all var(--transition);
+            flex: 1 0 auto;
+            min-width: 220px;
+            max-width: 320px;
+            position: relative;
+        }
+        .candidate-card:hover {
+            border-color: #dde4f0;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            transform: translateY(-1px);
+        }
+        .candidate-card.voted-flash {
+            animation: votedPulse 0.5s ease-out;
+            border-color: var(--primary) !important;
+            background: #f0f3ff !important;
+        }
+        @keyframes votedPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.5);
+            }
+            50% {
+                transform: scale(1.03);
+                box-shadow: 0 0 24px 6px rgba(102, 126, 234, 0.25);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+            }
+        }
+        .candidate-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .candidate-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .candidate-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .candidate-votes {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .candidate-votes .vote-count {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 15px;
+        }
+        .btn-vote {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            transition: all var(--transition);
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.25);
+        }
+        .btn-vote:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+        }
+        .btn-vote:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+            color: #94a3b8;
+        }
+        .btn-delete-candidate {
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #cbd5e1;
+            padding: 2px 6px;
+            border-radius: 50%;
+            transition: all var(--transition);
+            line-height: 1;
+            opacity: 0;
+        }
+        .candidate-card:hover .btn-delete-candidate {
+            opacity: 1;
+        }
+        .btn-delete-candidate:hover {
+            color: #ef4444;
+            background: #fef2f2;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 700px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .rank-panel {
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .rank-panel h4 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #fff;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border-left: 4px solid transparent;
+        }
+        .ranking-item.rank-1 {
+            border-left-color: #f59e0b;
+            background: #fffdf5;
+        }
+        .ranking-item.rank-2 {
+            border-left-color: #94a3b8;
+        }
+        .ranking-item.rank-3 {
+            border-left-color: #cd853f;
+        }
+        .rank-badge {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 12px;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .rank-1 .rank-badge {
+            background: linear-gradient(135deg, #f59e0b, #e67e00);
+            font-size: 14px;
+        }
+        .rank-2 .rank-badge {
+            background: #94a3b8;
+        }
+        .rank-3 .rank-badge {
+            background: #b8845c;
+        }
+        .rank-name {
+            flex: 1;
+            color: var(--text);
+        }
+        .rank-votes {
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .rank-bar-bg {
+            flex: 2;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 50px;
+        }
+        .rank-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.6s ease;
+        }
+        .bar-gold {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        .bar-silver {
+            background: linear-gradient(90deg, #94a3b8, #b0bec5);
+        }
+        .bar-bronze {
+            background: linear-gradient(90deg, #b8845c, #d4a574);
+        }
+        .bar-default {
+            background: var(--primary);
+        }
+        .chart-box {
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+        }
+        .chart-box h4 {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .chart-box canvas {
+            max-height: 250px;
+        }
+        .ai-section {
+            background: linear-gradient(135deg, #fefce8, #fffbeb);
+            border: 2px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ai-section h4 {
+            font-size: 14px;
+            color: #92400e;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ai-buttons-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-copy {
+            background: #1e293b;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-copy:hover {
+            background: #334155;
+            transform: translateY(-2px);
+        }
+        .btn-copy.copied {
+            background: #10b981;
+        }
+        .btn-ai {
+            background: linear-gradient(135deg, #f59e0b, #e67e00);
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+        }
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(245, 158, 11, 0.4);
+        }
+        .ai-review-output {
+            background: #fff;
+            border-radius: 10px;
+            padding: 14px 16px;
+            border: 1px solid #fde68a;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #78350f;
+            min-height: 60px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .ai-review-output:empty::after {
+            content: '点击按钮，AI将自动分析投票数据...';
+            color: #d4a574;
+            font-style: italic;
+        }
+        textarea.ai-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #fde68a;
+            border-radius: 10px;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            resize: vertical;
+            min-height: 50px;
+            background: #fffbeb;
+            color: #78350f;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .no-data {
+            color: #94a3b8;
+            text-align: center;
+            padding: 12px;
+            font-style: italic;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="main-panel">
+        <div class="header">
+            <div class="header-left">
+                <h1>🗳️ 实时投票</h1>
+                <div class="subtitle">
+                    <span class="ai-badge">🤖 AI赋能</span> 微信/支付宝扫码参与 · 数据驱动决策
+                </div>
+            </div>
+            <div class="qr-box">
+                <div class="qr-container" id="qrContainer"></div>
+                <div class="qr-info">
+                    <span>📱 微信 / 支付宝</span><br>扫一扫立即投票
+                </div>
+                <div class="public-url-row">
+                    <input type="text" id="publicUrlInput" placeholder="输入公网访问网址...">
+                    <button class="btn-small" id="btnSaveUrl">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="candidate-bar">
+            <input type="text" id="newCandidateInput" placeholder="输入候选人姓名，按回车添加" maxlength="20">
+            <button class="btn btn-primary" id="btnAddCandidate">＋ 添加候选人</button>
+            <button class="btn-danger-text" id="btnResetAll">↻ 重置全部数据</button>
+        </div>
+
+        <div class="candidates-scroll" id="candidateList"></div>
+
+        <div class="results-grid">
+            <div class="rank-panel">
+                <h4>🏆 实时排名</h4>
+                <div class="ranking-list" id="rankingList">
+                    <div class="no-data">暂无投票，请添加候选人并投票</div>
+                </div>
+            </div>
+            <div class="chart-box">
+                <h4>📊 柱状图 · 票数对比</h4>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-box" style="margin-top:0;">
+            <h4>📈 折线图 · 投票趋势</h4>
+            <canvas id="lineChart"></canvas>
+        </div>
+
+        <div class="ai-section">
+            <h4>🤖 AI智能点评（DeepSeek）</h4>
+            <textarea class="ai-input" id="aiReviewInput" placeholder="投票数据将自动填充，也可手动粘贴..."></textarea>
+            <div class="ai-buttons-row">
+                <button class="btn-copy" id="btnCopyData">📋 复制数据给AI</button>
+                <button class="btn-ai" id="btnAutoAnalyze">🔍 自动分析当前数据</button>
+                <button class="btn-ai" id="btnGenerateReview" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                    ✨ 生成AI点评
+                </button>
+            </div>
+            <div class="ai-review-output" id="aiReviewOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== DOM元素 ====================
+            const candidateList = document.getElementById('candidateList');
+            const rankingList = document.getElementById('rankingList');
+            const newCandidateInput = document.getElementById('newCandidateInput');
+            const btnAddCandidate = document.getElementById('btnAddCandidate');
+            const btnResetAll = document.getElementById('btnResetAll');
+            const btnCopyData = document.getElementById('btnCopyData');
+            const btnAutoAnalyze = document.getElementById('btnAutoAnalyze');
+            const btnGenerateReview = document.getElementById('btnGenerateReview');
+            const aiReviewInput = document.getElementById('aiReviewInput');
+            const aiReviewOutput = document.getElementById('aiReviewOutput');
+            const toast = document.getElementById('toast');
+            const qrContainer = document.getElementById('qrContainer');
+            const publicUrlInput = document.getElementById('publicUrlInput');
+            const btnSaveUrl = document.getElementById('btnSaveUrl');
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+
+            // ==================== DeepSeek API配置 ====================
+            const DEEPSEEK_API_KEY = 'sk-3636b18780fc4f749aad60dbf2d2ea8b';
+            const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+
+            // ==================== 数据层 ====================
+            const STORAGE_KEY_VOTES = 'voting_system_votes';
+            const STORAGE_KEY_HISTORY = 'voting_system_history';
+            const STORAGE_KEY_CANDIDATES = 'voting_system_candidates';
+            const STORAGE_KEY_PUBLIC_URL = 'voting_public_url';
+
+            const colorPool = [
+                '#667eea', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+                '#ec4899', '#06b6d4', '#f97316', '#84cc16', '#6366f1',
+                '#14b8a6', '#e11d48', '#a855f7', '#0ea5e9', '#f43f5e'
+            ];
+
+            function getCandidateColor(index) {
+                return colorPool[index % colorPool.length];
+            }
+
+            function loadVotes() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY_VOTES)) || {}; } catch { return {}; }
+            }
+
+            function loadCandidates() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY_CANDIDATES)) || []; } catch { return []; }
+            }
+
+            function loadHistory() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY)) || []; } catch { return []; }
+            }
+
+            function saveVotes(votes) { localStorage.setItem(STORAGE_KEY_VOTES, JSON.stringify(votes)); }
+
+            function saveCandidates(candidates) { localStorage.setItem(STORAGE_KEY_CANDIDATES, JSON.stringify(
+                candidates)); }
+
+            function saveHistory(history) {
+                if (history.length > 500) history = history.slice(-500);
+                localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
+            }
+
+            function getSavedPublicUrl() {
+                return localStorage.getItem(STORAGE_KEY_PUBLIC_URL) || '';
+            }
+
+            function savePublicUrl(url) {
+                localStorage.setItem(STORAGE_KEY_PUBLIC_URL, url);
+            }
+
+            function initDefaultData() {
+                const defaultCandidates = ['张三', '李四', '王五', '赵六'];
+                const defaultVotes = { '张三': 5, '李四': 8, '王五': 3, '赵六': 6 };
+                const defaultHistory = [
+                    '张三', '李四', '李四', '赵六', '王五', '李四', '张三', '赵六', '李四', '王五',
+                    '赵六', '李四', '张三', '李四', '赵六', '王五', '李四', '张三', '赵六', '李四',
+                    '张三', '李四'
+                ].map((name, i) => ({ candidate: name, time: Date.now() - (22 - i) * 30000 }));
+                saveCandidates(defaultCandidates);
+                saveVotes(defaultVotes);
+                saveHistory(defaultHistory);
+                return { candidates: defaultCandidates, votes: defaultVotes, history: defaultHistory };
+            }
+
+            function getOrInitData() {
+                let candidates = loadCandidates();
+                let votes = loadVotes();
+                let history = loadHistory();
+                if (candidates.length === 0) {
+                    const defaults = initDefaultData();
+                    candidates = defaults.candidates;
+                    votes = defaults.votes;
+                    history = defaults.history;
+                }
+                for (const key of Object.keys(votes)) {
+                    if (!candidates.includes(key)) delete votes[key];
+                }
+                const cleanedHistory = history.filter(h => candidates.includes(h.candidate));
+                if (cleanedHistory.length !== history.length) {
+                    saveHistory(cleanedHistory);
+                    history = cleanedHistory;
+                }
+                for (const name of candidates) {
+                    if (!(name in votes)) votes[name] = 0;
+                }
+                saveVotes(votes);
+                return { candidates, votes, history };
+            }
+
+            let data = getOrInitData();
+
+            // ==================== Toast ====================
+            let toastTimer;
+
+            function showToast(message, icon = '✅') {
+                toast.textContent = icon + ' ' + message;
+                toast.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+            }
+
+            // ==================== 二维码生成（使用公网URL） ====================
+            function getEffectiveUrl() {
+                const savedUrl = getSavedPublicUrl();
+                if (savedUrl && (savedUrl.startsWith('http://') || savedUrl.startsWith('https://'))) {
+                    return savedUrl;
+                }
+                return window.location.href;
+            }
+
+            function generateQR() {
+                qrContainer.innerHTML = '';
+                const url = getEffectiveUrl();
+                publicUrlInput.value = url;
+                try {
+                    new QRCode(qrContainer, {
+                        text: url,
+                        width: 70,
+                        height: 70,
+                        colorDark: '#1e293b',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                } catch (e) {
+                    qrContainer.innerHTML = '<span style="font-size:10px;color:#94a3b8;">二维码生成失败</span>';
+                }
+            }
+
+            btnSaveUrl.addEventListener('click', () => {
+                const newUrl = publicUrlInput.value.trim();
+                if (newUrl && (newUrl.startsWith('http://') || newUrl.startsWith('https://'))) {
+                    savePublicUrl(newUrl);
+                    generateQR();
+                    showToast('公网地址已保存，二维码已更新', '🔗');
+                } else {
+                    showToast('请输入有效的 http/https 地址', '⚠️');
+                }
+            });
+
+            // ==================== 渲染候选人 ====================
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function renderCandidates() {
+                const { candidates, votes } = data;
+                candidateList.innerHTML = '';
+                if (candidates.length === 0) {
+                    candidateList.innerHTML = '<div class="no-data">暂无候选人，请添加</div>';
+                    return;
+                }
+                candidates.forEach((name, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'candidate-card';
+                    card.innerHTML = `
+                        <div class="candidate-avatar" style="background:${getCandidateColor(index)};">
+                            ${name.charAt(0)}
+                        </div>
+                        <div class="candidate-info">
+                            <div class="candidate-name">${escapeHTML(name)}</div>
+                            <div class="candidate-votes">
+                                已获 <span class="vote-count">${votes[name] || 0}</span> 票
+                            </div>
+                        </div>
+                        <button class="btn-vote" data-name="${escapeHTML(name)}">🗳 投票</button>
+                        <button class="btn-delete-candidate" data-name="${escapeHTML(name)}" title="删除候选人">×</button>
+                    `;
+                    candidateList.appendChild(card);
+                });
+
+                candidateList.querySelectorAll('.btn-vote').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const name = this.dataset.name;
+                        castVote(name);
+                        const cardEl = this.closest('.candidate-card');
+                        cardEl.classList.remove('voted-flash');
+                        void cardEl.offsetWidth;
+                        cardEl.classList.add('voted-flash');
+                    });
+                });
+
+                candidateList.querySelectorAll('.btn-delete-candidate').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        deleteCandidate(this.dataset.name);
+                    });
+                });
+            }
+
+            function castVote(name) {
+                const { votes, history, candidates } = data;
+                if (!candidates.includes(name)) return;
+                votes[name] = (votes[name] || 0) + 1;
+                history.push({ candidate: name, time: Date.now() });
+                saveVotes(votes);
+                saveHistory(history);
+                data.votes = votes;
+                data.history = history;
+                updateAllDisplays();
+                showToast(`已为「${name}」投票！`, '🗳️');
+            }
+
+            function deleteCandidate(name) {
+                if (!confirm(`确定删除候选人「${name}」吗？`)) return;
+                const { votes, history, candidates } = data;
+                const newCandidates = candidates.filter(c => c !== name);
+                delete votes[name];
+                const newHistory = history.filter(h => h.candidate !== name);
+                saveCandidates(newCandidates);
+                saveVotes(votes);
+                saveHistory(newHistory);
+                data.candidates = newCandidates;
+                data.votes = votes;
+                data.history = newHistory;
+                updateAllDisplays();
+                showToast(`已删除「${name}」`, '🗑️');
+            }
+
+            function addCandidate(name) {
+                const trimmed = name.trim();
+                if (!trimmed) { showToast('请输入姓名', '⚠️'); return; }
+                if (trimmed.length > 20) { showToast('姓名不能超过20字', '⚠️'); return; }
+                if (data.candidates.includes(trimmed)) { showToast('该候选人已存在', '⚠️'); return; }
+                data.candidates.push(trimmed);
+                data.votes[trimmed] = 0;
+                saveCandidates(data.candidates);
+                saveVotes(data.votes);
+                updateAllDisplays();
+                showToast(`已添加「${trimmed}」`, '➕');
+            }
+
+            function resetAll() {
+                if (!confirm('确定重置所有投票数据吗？此操作不可恢复！')) return;
+                localStorage.removeItem(STORAGE_KEY_VOTES);
+                localStorage.removeItem(STORAGE_KEY_HISTORY);
+                localStorage.removeItem(STORAGE_KEY_CANDIDATES);
+                const defaults = initDefaultData();
+                data = { candidates: defaults.candidates, votes: defaults.votes, history: defaults.history };
+                updateAllDisplays();
+                showToast('所有数据已重置', '↻');
+            }
+
+            // ==================== 排名渲染 ====================
+            function renderRanking() {
+                const { candidates, votes } = data;
+                rankingList.innerHTML = '';
+                if (candidates.length === 0) {
+                    rankingList.innerHTML = '<div class="no-data">暂无投票数据</div>';
+                    return;
+                }
+                const sorted = candidates.map(name => ({ name, votes: votes[name] || 0 }))
+                    .sort((a, b) => b.votes - a.votes);
+                const maxVotes = Math.max(sorted[0]?.votes || 1, 1);
+
+                sorted.forEach((item, index) => {
+                    const rank = index + 1;
+                    let rankClass = '',
+                        barClass = 'bar-default';
+                    if (rank === 1) { rankClass = 'rank-1';
+                        barClass = 'bar-gold'; } else if (rank === 2) { rankClass = 'rank-2';
+                        barClass = 'bar-silver'; } else if (rank === 3) { rankClass = 'rank-3';
+                        barClass = 'bar-bronze'; }
+                    const barWidth = Math.round((item.votes / maxVotes) * 100);
+                    const div = document.createElement('div');
+                    div.className = `ranking-item ${rankClass}`;
+                    div.innerHTML = `
+                        <span class="rank-badge">${rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}</span>
+                        <span class="rank-name">${escapeHTML(item.name)}</span>
+                        <span class="rank-votes">${item.votes}票</span>
+                        <span class="rank-bar-bg"><span class="rank-bar-fill ${barClass}" style="width:${barWidth}%;"></span></span>
+                    `;
+                    rankingList.appendChild(div);
+                });
+            }
+
+            // ==================== 图表 ====================
+            let barChart, lineChart;
+
+            function updateBarChart() {
+                const { candidates, votes } = data;
+                const labels = candidates;
+                const values = candidates.map(c => votes[c] || 0);
+                const colors = candidates.map((_, i) => getCandidateColor(i));
+                if (!barChart) {
+                    barChart = new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: '得票数',
+                                data: values,
+                                backgroundColor: colors.map(c => c + 'CC'),
+                                borderColor: colors,
+                                borderWidth: 2,
+                                borderRadius: 8,
+                                borderSkipped: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                            },
+                            animation: { duration: 400 }
+                        }
+                    });
+                } else {
+                    barChart.data.labels = labels;
+                    barChart.data.datasets[0].data = values;
+                    barChart.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
+                    barChart.data.datasets[0].borderColor = colors;
+                    barChart.update();
+                }
+            }
+
+            function updateLineChart() {
+                const { candidates, history } = data;
+                if (history.length === 0) {
+                    if (lineChart) lineChart.destroy(), lineChart = null;
+                    return;
+                }
+                const maxPoints = 40;
+                let sampled = history;
+                if (history.length > maxPoints) {
+                    const step = Math.floor(history.length / maxPoints);
+                    const seen = new Set();
+                    sampled = history.filter((_, i) => i % step === 0 || i === history.length - 1)
+                        .filter((_, i) => { if (seen.has(i)) return false;
+                            seen.add(i); return true; }).slice(0, maxPoints);
+                }
+                const labels = sampled.map((_, i) => `#${i + 1}`);
+                const cum = {};
+                candidates.forEach(n => cum[n] = 0);
+                const datasets = candidates.map((name, i) => ({
+                    label: name,
+                    data: [],
+                    borderColor: getCandidateColor(i),
+                    borderWidth: 2.5,
+                    tension: 0.3,
+                    fill: false,
+                    pointRadius: sampled.length <= 20 ? 3 : 1.5,
+                }));
+                sampled.forEach(r => {
+                    if (cum[r.candidate] !== undefined) cum[r.candidate]++;
+                    candidates.forEach((name, idx) => datasets[idx].data.push(cum[name]));
+                });
+                if (!lineChart) {
+                    lineChart = new Chart(lineCtx, {
+                        type: 'line',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                            animation: { duration: 400 }
+                        }
+                    });
+                } else {
+                    lineChart.data.labels = labels;
+                    lineChart.data.datasets = datasets;
+                    lineChart.update();
+                }
+            }
+
+            function updateAllCharts() { updateBarChart();
+                updateLineChart(); }
+
+            function updateAllDisplays() {
+                renderCandidates();
+                renderRanking();
+                updateAllCharts();
+                autoFillAIInput();
+            }
+
+            // ==================== AI数据 ====================
+            function getDataSummary() {
+                const { candidates, votes } = data;
+                const sorted = candidates.map(n => ({ name: n, votes: votes[n] || 0 }))
+                    .sort((a, b) => b.votes - a.votes);
+                const total = sorted.reduce((s, i) => s + i.votes, 0);
+                let sum = `投票数据摘要：\n总投票数：${total} 票，候选人：${candidates.length}人\n`;
+                sorted.forEach((i, idx) => {
+                    const pct = total ? ((i.votes / total) * 100).toFixed(1) : '0';
+                    sum += `${idx+1}. ${i.name}：${i.votes}票 (${pct}%)\n`;
+                });
+                if (sorted.length >= 2) sum += `领先差距：${sorted[0].votes - sorted[1].votes}票\n`;
+                return sum;
+            }
+
+            function copyDataToClipboard() {
+                const text = getDataSummary();
+                navigator.clipboard.writeText(text).then(() => {
+                    btnCopyData.textContent = '✅ 已复制！';
+                    btnCopyData.classList.add('copied');
+                    aiReviewInput.value = text;
+                    showToast('数据已复制，可粘贴到AI点评区', '📋');
+                    setTimeout(() => { btnCopyData.textContent = '📋 复制数据给AI';
+                        btnCopyData.classList.remove('copied'); }, 2000);
+                }).catch(() => {
+                    aiReviewInput.value = text;
+                    aiReviewInput.select();
+                    showToast('请手动复制文本框内容', '📋');
+                });
+            }
+
+            function autoFillAIInput() { aiReviewInput.value = getDataSummary(); }
+
+            // ==================== 真实AI接口调用 ====================
+            async function callDeepSeekAPI(prompt) {
+                const systemPrompt =
+                    '你是一个专业的投票数据分析师，请根据提供的投票数据，用中文给出简洁生动、有洞察力的点评（100字以内）。语气活泼，可适当使用emoji。直接给出点评内容，不要额外解释。';
+                try {
+                    const response = await fetch(DEEPSEEK_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: 'deepseek-chat',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: prompt }
+                            ],
+                            temperature: 0.8,
+                            max_tokens: 200
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error?.message || `API请求失败 (${response.status})`);
+                    }
+                    const data = await response.json();
+                    return data.choices[0].message.content.trim();
+                } catch (error) {
+                    console.error('DeepSeek API错误:', error);
+                    return `❌ AI点评生成失败：${error.message}`;
+                }
+            }
+
+            async function generateAIReview(promptOverride = null) {
+                aiReviewOutput.textContent = '🤔 AI正在思考中...';
+                aiReviewOutput.style.opacity = '0.7';
+                const prompt = promptOverride || aiReviewInput.value.trim() || getDataSummary();
+                if (!prompt || prompt === '投票数据将自动填充，也可手动粘贴...') {
+                    aiReviewOutput.textContent = '请先投票或点击“自动分析当前数据”填充数据。';
+                    aiReviewOutput.style.opacity = '1';
+                    return;
+                }
+                const review = await callDeepSeekAPI(prompt);
+                aiReviewOutput.textContent = review;
+                aiReviewOutput.style.opacity = '1';
+                showToast('AI点评已生成', '🤖');
+            }
+
+            function autoAnalyze() {
+                autoFillAIInput();
+                generateAIReview(aiReviewInput.value);
+            }
+
+            // ==================== 事件绑定 ====================
+            btnAddCandidate.addEventListener('click', () => {
+                addCandidate(newCandidateInput.value);
+                newCandidateInput.value = '';
+            });
+            newCandidateInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { addCandidate(newCandidateInput.value);
+                    newCandidateInput.value = ''; }
+            });
+            btnResetAll.addEventListener('click', resetAll);
+            btnCopyData.addEventListener('click', copyDataToClipboard);
+            btnAutoAnalyze.addEventListener('click', autoAnalyze);
+            btnGenerateReview.addEventListener('click', () => generateAIReview());
+
+            // 多标签页同步检查
+            window.addEventListener('storage', e => {
+                if ([STORAGE_KEY_VOTES, STORAGE_KEY_HISTORY, STORAGE_KEY_CANDIDATES].includes(e.key)) {
+                    data = getOrInitData();
+                    updateAllDisplays();
+                }
+            });
+            setInterval(() => {
+                const curVotes = loadVotes();
+                const curCand = loadCandidates();
+                const curHist = loadHistory();
+                if (JSON.stringify(curVotes) !== JSON.stringify(data.votes) ||
+                    JSON.stringify(curCand) !== JSON.stringify(data.candidates) ||
+                    JSON.stringify(curHist) !== JSON.stringify(data.history)) {
+                    data = { candidates: curCand, votes: curVotes, history: curHist };
+                    updateAllDisplays();
+                }
+            }, 3000);
+
+            // 初始化
+            generateQR();
+            updateAllDisplays();
+            console.log('✅ 投票系统就绪，微信/支付宝扫码均可打开（需设置公网URL）');
+        })();
+    </script>
+</body>
+</html>
